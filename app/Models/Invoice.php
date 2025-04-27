@@ -19,6 +19,7 @@ class Invoice extends Model
         'invoice_date',
         'fixed_fee_used',
         'rate_per_m3_used',
+        'status',
     ];
 
     public function apartment()

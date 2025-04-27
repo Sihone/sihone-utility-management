@@ -2,9 +2,17 @@
   <v-app>
     <!-- Top Navigation Bar -->
     <v-app-bar app color="primary" dark>
-      <v-toolbar-title class="text-h5">Utility Manager</v-toolbar-title>
+      <v-toolbar-title class="text-h5 app-title">Utility Manager</v-toolbar-title>
 
       <v-spacer />
+      
+      <v-btn
+        variant="text"
+        :to="{ path: '/meter-readings' }"
+        :class="{ 'v-btn--active': $route.path.startsWith('/meter-readings') }"
+      >
+        Meter Readings
+      </v-btn>
 
       <v-btn
         variant="text"
@@ -12,14 +20,6 @@
         :class="{ 'v-btn--active': $route.path.startsWith('/apartments') }"
       >
         Apartments
-      </v-btn>
-
-      <v-btn
-        variant="text"
-        :to="{ path: '/meter-readings' }"
-        :class="{ 'v-btn--active': $route.path.startsWith('/meter-readings') }"
-      >
-        Meter Readings
       </v-btn>
       
       <v-btn
