@@ -15,6 +15,7 @@ const vuetify = createVuetify()
 
 // Import Tailwind if you still want it
 import './assets/main.css'
+import './style.css'
 
 const app = createApp(App)
 

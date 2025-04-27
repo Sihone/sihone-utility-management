@@ -1,22 +1,96 @@
 <template>
-  <v-container>
-    <v-card class="mt-5">
-      <v-card-title class="text-h5">
-        Invoices
-      </v-card-title>
+  <v-container fluid style="margin-top: 60px;">
+    
+    <v-row>
+      <v-col>
+        <h2>Invoices</h2>
+      </v-col>
+    </v-row>
+    
+    <!-- full screen horizontal line -->
+    <v-divider class="my-4" />
+    
+    <!-- Filters -->
+    <v-row class="mb-4" dense>
+      <v-col cols="12" md="4">
+        <v-select
+          v-model="selectedApartment"
+          :items="apartments"
+          item-title="name"
+          item-value="id"
+          label="Filter by Apartment"
+          clearable
+          :loading="loadingApartments"
+        />
+      </v-col>
+      <v-col cols="12" md="3">
+        <v-text-field
+          v-model="startDate"
+          label="Start Date"
+          type="date"
+          clearable
+        />
+      </v-col>
+      <v-col cols="12" md="3">
+        <v-text-field
+          v-model="endDate"
+          label="End Date"
+          type="date"
+          clearable
+        />
+      </v-col>
+      <v-col cols="12" md="2">
+        <v-btn text color="primary" class="mt-4" @click="clearFilters">Clear Filters</v-btn>
+      </v-col>
+    </v-row>
 
+    <v-card class="mt-5">
       <v-data-table
         :headers="headers"
-        :items="invoices"
+        :items="filteredInvoices"
         item-value="id"
         class="elevation-1"
+        :loading="loadingInvoices || loadingSettings"
       >
-        <template #item.actions="{ item }">
-          <v-btn size="small" @click="printInvoice(item)">
+        <template #item.actions="{ item }" class="d-flex align-center">
+          <v-btn size="small" @click="printInvoice(item)" class="mr-2">
             <v-icon>mdi-printer</v-icon>
           </v-btn>
+          <v-btn size="small" color="success" v-if="item.status === 'Pending'" @click="openMarkDialog(item.id, 'Paid')">
+            <v-icon>mdi-cash-check</v-icon>
+          </v-btn>
+          <v-btn size="small" color="error" v-if="item.status !== 'Pending'" @click="openMarkDialog(item.id, 'Pending')">
+            <v-icon>mdi-cash-remove</v-icon>
+          </v-btn>
+        </template>
+        <template #item.status="{ item }">
+          <v-chip
+            :color="item.status === 'Paid' ? 'green' : 'orange'"
+            text-color="white"
+            small
+          >
+            {{ item.status }}
+          </v-chip>
         </template>
       </v-data-table>
+      <v-dialog v-model="markDialog" max-width="400px">
+        <v-card>
+          <v-card-title class="headline">
+            Confirm Status Change
+          </v-card-title>
+
+          <v-card-text>
+            Are you sure you want to mark this invoice as <strong>{{ markAs }}</strong>?
+          </v-card-text>
+
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn text @click="markDialog = false" :disabled="saving">Cancel</v-btn>
+            <v-btn color="primary" text @click="confirmMarkStatus" :loading="saving">Yes, Confirm</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
     </v-card>
   </v-container>
 </template>
@@ -32,34 +106,89 @@ export default {
       headers: [
         { title: 'Apartment', value: 'apartment.name' },
         { title: 'Invoice Date', value: 'invoice_date' },
-        { title: 'Start Index', value: 'start_index' },
-        { title: 'End Index', value: 'end_index' },
         { title: 'Consumption (m³)', value: 'consumption' },
         { title: 'Amount (FCFA)', value: 'amount' },
+        { title: 'Status', value: 'status' },
         { title: 'Actions', value: 'actions', sortable: false },
       ],
+      selectedApartment: null,
+      startDate: '',
+      endDate: '',
+      loadingInvoices: false,
+      loadingSettings: false,
+      loadingApartments: false,
+      markDialog: false,
+      selectedInvoiceId: null,
+      markAs: '', // 'Paid' or 'Pending'
+      saving: false,
+    }
+  },
+  computed: {
+    filteredInvoices() {
+      return this.invoices.filter(invoice => {
+        const byApartment = this.selectedApartment ? invoice.apartment.id === this.selectedApartment : true;
+        const byStartDate = this.startDate ? invoice.invoice_date >= this.startDate : true;
+        const byEndDate = this.endDate ? invoice.invoice_date <= this.endDate : true;
+        return byApartment && byStartDate && byEndDate;
+      });
     }
   },
   mounted() {
     this.fetchInvoices();
     this.fetchSettings();
+    this.fetchApartments();
   },
   methods: {
     async fetchInvoices() {
+      this.loadingInvoices = true
       try {
         const response = await axios.get('http://127.0.0.1:8000/api/invoices')
         this.invoices = response.data
       } catch (error) {
         console.error('Error fetching invoices:', error)
+      } finally {
+        this.loadingInvoices = false
       }
     },
     async fetchSettings() {
+      this.loadingSettings = true
       try {
         const response = await axios.get('http://127.0.0.1:8000/api/settings')
         this.settings = {};
         this.settings.payment_options = JSON.parse(response.data.payment_options || '{}')
       } catch (error) {
         console.error('Error loading settings:', error)
+      } finally {
+        this.loadingSettings = false
+      }
+    },
+
+    async fetchApartments() {
+      this.loadingApartments = true
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/apartments')
+        this.apartments = response.data
+      } catch (error) {
+        console.error('Error fetching apartments:', error)
+      } finally {
+        this.loadingApartments = false
+      }
+    },
+    openMarkDialog(invoiceId, status) {
+      this.selectedInvoiceId = invoiceId;
+      this.markAs = status;
+      this.markDialog = true;
+    },
+    async confirmMarkStatus() {
+      this.saving = true;
+      try {
+        await axios.put(`http://127.0.0.1:8000/api/invoices/${this.selectedInvoiceId}`, { status: this.markAs });
+        this.fetchInvoices();
+        this.markDialog = false;
+      } catch (error) {
+        console.error('Error updating invoice status:', error);
+      } finally {
+        this.saving = false;
       }
     },
     printInvoice(invoice) {
@@ -162,8 +291,12 @@ export default {
 
       popup.document.write(invoiceHtml);
       popup.document.close();
+    },
+    clearFilters() {
+      this.selectedApartment = null
+      this.startDate = ''
+      this.endDate = ''
     }
-
   }
 }
 </script>
