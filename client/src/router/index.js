@@ -1,11 +1,17 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import ApartmentsList from '../views/ApartmentsList.vue'; // We'll create this soon
+import MeterReadingsList from '../views/MeterReadingsList.vue';
 
 const routes = [
   {
-    path: '/',
+    path: '/apartments',
     name: 'ApartmentsList',
     component: ApartmentsList
+  },
+  {
+    path: '/',
+    name: 'MeterReadings',
+    component: MeterReadingsList,
   },
 ];
 

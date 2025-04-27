@@ -12,11 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('meter_readings', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('apartment_id')->constrained()->onDelete('cascade');
-            $table->date('reading_date');
-            $table->decimal('reading_value', 8, 2); // Example: 1234.56 cubic meters
-            $table->timestamps();
+          $table->id();
+          $table->unsignedBigInteger('apartment_id');
+          $table->date('reading_date');
+          $table->integer('meter_index');
+          $table->timestamps();
+
+          $table->foreign('apartment_id')->references('id')->on('apartments')->onDelete('cascade');
         });
     }
 
