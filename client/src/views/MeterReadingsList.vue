@@ -50,9 +50,9 @@
         class="elevation-1"
       >
         <template #item.actions="{ item }">
-          <v-btn icon size="small" @click="startEdit(item)">
+          <!-- <v-btn icon size="small" @click="startEdit(item)">
             <v-icon>mdi-pencil</v-icon>
-          </v-btn>
+          </v-btn> -->
           <v-btn icon size="small" color="red" @click="deleteMeterReading(item.id)">
             <v-icon>mdi-delete</v-icon>
           </v-btn>
@@ -85,7 +85,7 @@
     </v-dialog>
 
     <!-- Edit Meter Reading Modal -->
-    <v-dialog v-model="editDialog" max-width="500px">
+    <!-- <v-dialog v-model="editDialog" max-width="500px">
       <v-card>
         <v-card-title>Edit Meter Reading</v-card-title>
         <v-card-text>
@@ -106,7 +106,7 @@
           <v-btn color="primary" @click="updateMeterReading(editingMeterReadingId)">Save</v-btn>
         </v-card-actions>
       </v-card>
-    </v-dialog>
+    </v-dialog> -->
   </v-container>
 </template>
 
@@ -125,7 +125,7 @@ export default {
       editingMeterReadingId: null,
       newMeterReading: {
         apartment_id: null,
-        reading_date: '',
+        reading_date: new Date().toISOString().split('T')[0],
         meter_index: '',
       },
       editedMeterReading: {
@@ -192,31 +192,31 @@ export default {
         toast.error('Failed to add meter reading.')
       }
     },
-    startEdit(meterReading) {
-      this.editingMeterReadingId = meterReading.id
-      this.editedMeterReading = {
-        apartment_id: meterReading.apartment,
-        reading_date: meterReading.reading_date,
-        meter_index: meterReading.meter_index,
-      }
-      this.editDialog = true
-    },
-    async updateMeterReading(id) {
-      const toast = useToast()
-      try {
-        await axios.put(`http://127.0.0.1:8000/api/meter-readings/${id}`, {
-          apartment_id: this.editedMeterReading.apartment_id.id || this.editedMeterReading.apartment_id,
-          reading_date: this.editedMeterReading.reading_date,
-          meter_index: this.editedMeterReading.meter_index,
-        })
-        this.editDialog = false
-        this.fetchMeterReadings()
-        toast.success('Meter reading updated successfully!')
-      } catch (error) {
-        console.error('Error updating meter reading:', error)
-        toast.error('Failed to update meter reading.')
-      }
-    },
+    // startEdit(meterReading) {
+    //   this.editingMeterReadingId = meterReading.id
+    //   this.editedMeterReading = {
+    //     apartment_id: meterReading.apartment,
+    //     reading_date: meterReading.reading_date,
+    //     meter_index: meterReading.meter_index,
+    //   }
+    //   this.editDialog = true
+    // },
+    // async updateMeterReading(id) {
+    //   const toast = useToast()
+    //   try {
+    //     await axios.put(`http://127.0.0.1:8000/api/meter-readings/${id}`, {
+    //       apartment_id: this.editedMeterReading.apartment_id.id || this.editedMeterReading.apartment_id,
+    //       reading_date: this.editedMeterReading.reading_date,
+    //       meter_index: this.editedMeterReading.meter_index,
+    //     })
+    //     this.editDialog = false
+    //     this.fetchMeterReadings()
+    //     toast.success('Meter reading updated successfully!')
+    //   } catch (error) {
+    //     console.error('Error updating meter reading:', error)
+    //     toast.error('Failed to update meter reading.')
+    //   }
+    // },
     async deleteMeterReading(id) {
       const toast = useToast()
       if (!confirm('Are you sure you want to delete this meter reading?')) {

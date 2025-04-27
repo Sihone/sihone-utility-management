@@ -41,7 +41,8 @@ export default {
     }
   },
   mounted() {
-    this.fetchInvoices()
+    this.fetchInvoices();
+    this.fetchSettings();
   },
   methods: {
     async fetchInvoices() {
@@ -52,10 +53,26 @@ export default {
         console.error('Error fetching invoices:', error)
       }
     },
+    async fetchSettings() {
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/settings')
+        this.settings = {};
+        this.settings.payment_options = JSON.parse(response.data.payment_options || '{}')
+      } catch (error) {
+        console.error('Error loading settings:', error)
+      }
+    },
     printInvoice(invoice) {
       const popup = window.open('', '', 'width=900,height=650')
 
-      const today = new Date().toLocaleDateString()
+      const today = new Date().toLocaleDateString();
+      const waterCharge = invoice.consumption * invoice.rate_per_m3_used;
+      const totalDue = waterCharge + invoice.fixed_fee_used;
+
+      let paymentDetailsHtml = '';
+      for (const [key, value] of Object.entries(this.settings.payment_options)) {
+        paymentDetailsHtml += `<strong>${key}:</strong> ${value}<br/>`;
+      }
 
       const invoiceHtml = `
         <html>
@@ -110,18 +127,18 @@ export default {
               <tr>
                 <td>Water Consumption</td>
                 <td>${invoice.consumption} m³</td>
-                <td>1000</td>
-                <td>${invoice.consumption * 1000}</td>
+                <td>${invoice.rate_per_m3_used}</td>
+                <td>${waterCharge}</td>
               </tr>
               <tr>
                 <td>Fixed Service Fee</td>
                 <td>1</td>
-                <td>5000</td>
-                <td>5000</td>
+                <td>${invoice.fixed_fee_used}</td>
+                <td>${invoice.fixed_fee_used}</td>
               </tr>
               <tr>
                 <th colspan="3" style="text-align:right;">Total Due:</th>
-                <th>${invoice.amount} FCFA</th>
+                <th>${totalDue} FCFA</th>
               </tr>
             </table>
           </div>
@@ -129,14 +146,12 @@ export default {
           <div class="payment-info">
             <h3>Payment Instructions</h3>
             <p>
-              <strong>Bank Account:</strong> 123 456 7890<br/>
-              <strong>Mobile Money:</strong> MTN MoMo 6xx xxx xxx<br/>
-              <strong>Reference:</strong> Invoice ${invoice.id}
+              ${paymentDetailsHtml}
             </p>
           </div>
 
           <div class="footer">
-            Thank you for trusting our services. For any inquiries, contact us at info@utilityservices.com or call +237 6xx xxx xxx.
+            Thank you for trusting our services. For any inquiries, contact us at 696509794.
           </div>
 
           <script>window.print()<\/script>
