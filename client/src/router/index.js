@@ -3,7 +3,7 @@ import ApartmentsList from '../views/ApartmentsList.vue'; // We'll create this s
 
 const routes = [
   {
-    path: '/apartments',
+    path: '/',
     name: 'ApartmentsList',
     component: ApartmentsList
   },

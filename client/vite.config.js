@@ -8,4 +8,13 @@ export default defineConfig({
     vue(),
     vuetify({ autoImport: true }), // <-- ADD vuetify here
   ],
+  build: {
+    outDir: '../public/client', // <-- Build Vue into Laravel's public/client folder
+    emptyOutDir: true,
+  },
+  server: {
+    proxy: {
+      '/api': 'http://localhost:8000', // Proxy API requests to Laravel during dev
+    },
+  },
 })
