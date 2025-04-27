@@ -32,6 +32,14 @@
       
       <v-btn
         variant="text"
+        :to="{ path: '/payments' }"
+        :class="{ 'v-btn--active': $route.path.startsWith('/payments') }"
+      >
+        Payments
+      </v-btn>
+      
+      <v-btn
+        variant="text"
         :to="{ path: '/settings' }"
         :class="{ 'v-btn--active': $route.path.startsWith('/settings') }"
       >

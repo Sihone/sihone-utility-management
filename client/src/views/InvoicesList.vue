@@ -56,16 +56,13 @@
           <v-btn size="small" @click="printInvoice(item)" class="mr-2">
             <v-icon>mdi-printer</v-icon>
           </v-btn>
-          <v-btn size="small" color="success" v-if="item.status === 'Pending'" @click="openMarkDialog(item.id, 'Paid')">
-            <v-icon>mdi-cash-check</v-icon>
-          </v-btn>
-          <v-btn size="small" color="error" v-if="item.status !== 'Pending'" @click="openMarkDialog(item.id, 'Pending')">
-            <v-icon>mdi-cash-remove</v-icon>
+          <v-btn size="small" color="primary" @click="openPaymentDialog(item)" class="ml-2">
+            <v-icon>mdi-currency-usd</v-icon>
           </v-btn>
         </template>
         <template #item.status="{ item }">
           <v-chip
-            :color="item.status === 'Paid' ? 'green' : 'orange'"
+            :color="item.color"
             text-color="white"
             small
           >
@@ -73,23 +70,23 @@
           </v-chip>
         </template>
       </v-data-table>
-      <v-dialog v-model="markDialog" max-width="400px">
+      
+      <v-dialog v-model="paymentDialog" max-width="500px">
         <v-card>
-          <v-card-title class="headline">
-            Confirm Status Change
-          </v-card-title>
-
+          <v-card-title>Record Payment</v-card-title>
           <v-card-text>
-            Are you sure you want to mark this invoice as <strong>{{ markAs }}</strong>?
+            <v-text-field v-model="paymentForm.amount" label="Amount Paid (FCFA)" type="number" />
+            <v-text-field v-model="paymentForm.payment_date" label="Payment Date" type="date" />
+            <v-textarea v-model="paymentForm.notes" label="Notes (optional)" />
           </v-card-text>
-
           <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn text @click="markDialog = false" :disabled="saving">Cancel</v-btn>
-            <v-btn color="primary" text @click="confirmMarkStatus" :loading="saving">Yes, Confirm</v-btn>
+            <v-spacer />
+            <v-btn text @click="paymentDialog = false">Cancel</v-btn>
+            <v-btn color="primary" :loading="savingPayment" @click="savePayment">Save Payment</v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>
+
 
     </v-card>
   </v-container>
@@ -108,6 +105,7 @@ export default {
         { title: 'Invoice Date', value: 'invoice_date' },
         { title: 'Consumption (m³)', value: 'consumption' },
         { title: 'Amount (FCFA)', value: 'amount' },
+        { title: 'Balance (FCFA)', value: 'balance' },
         { title: 'Status', value: 'status' },
         { title: 'Actions', value: 'actions', sortable: false },
       ],
@@ -121,6 +119,14 @@ export default {
       selectedInvoiceId: null,
       markAs: '', // 'Paid' or 'Pending'
       saving: false,
+      paymentDialog: false,
+      paymentForm: {
+        invoice_id: null,
+        amount: '',
+        payment_date: '',
+        notes: '',
+      },
+      savingPayment: false,
     }
   },
   computed: {
@@ -143,7 +149,15 @@ export default {
       this.loadingInvoices = true
       try {
         const response = await axios.get('http://127.0.0.1:8000/api/invoices')
-        this.invoices = response.data
+        this.invoices = response.data.map((dt) => {
+          const balance = dt.amount - dt.payments.reduce((acc, payment) => acc + payment.amount, 0)
+          return {
+            ...dt,
+            balance,
+            status: balance === 0 ? 'Paid' : balance > 0  && balance < dt.amount ? 'Partial' : 'Unpaid',
+            color: balance === 0 ? 'green' : balance > 0  && balance < dt.amount ? 'orange' : 'red'
+          }
+        })
       } catch (error) {
         console.error('Error fetching invoices:', error)
       } finally {
@@ -172,23 +186,6 @@ export default {
         console.error('Error fetching apartments:', error)
       } finally {
         this.loadingApartments = false
-      }
-    },
-    openMarkDialog(invoiceId, status) {
-      this.selectedInvoiceId = invoiceId;
-      this.markAs = status;
-      this.markDialog = true;
-    },
-    async confirmMarkStatus() {
-      this.saving = true;
-      try {
-        await axios.put(`http://127.0.0.1:8000/api/invoices/${this.selectedInvoiceId}`, { status: this.markAs });
-        this.fetchInvoices();
-        this.markDialog = false;
-      } catch (error) {
-        console.error('Error updating invoice status:', error);
-      } finally {
-        this.saving = false;
       }
     },
     printInvoice(invoice) {
@@ -296,7 +293,35 @@ export default {
       this.selectedApartment = null
       this.startDate = ''
       this.endDate = ''
-    }
+    },
+    openPaymentDialog(invoice) {
+      this.paymentForm = {
+        invoice_id: invoice.id,
+        amount: invoice.balance,
+        payment_date: new Date().toISOString().split('T')[0],
+        notes: '',
+      };
+      this.paymentDialog = true;
+    },
+
+    async savePayment() {
+      if (!this.paymentForm.amount || !this.paymentForm.payment_date) {
+        alert('Please fill in all required fields.');
+        return;
+      }
+
+      this.savingPayment = true;
+      try {
+        await axios.post('http://127.0.0.1:8000/api/payments', this.paymentForm);
+        this.paymentDialog = false;
+        this.fetchInvoices(); // Refresh invoices (optional, in case status changes)
+      } catch (error) {
+        console.error('Error saving payment:', error);
+      } finally {
+        this.savingPayment = false;
+      }
+    },
+
   }
 }
 </script>
