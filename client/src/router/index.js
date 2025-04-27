@@ -3,6 +3,7 @@ import ApartmentsList from '../views/ApartmentsList.vue'; // We'll create this s
 import MeterReadingsList from '../views/MeterReadingsList.vue';
 import MainLayout from '../layouts/MainLayout.vue';
 import InvoicesList from '../views/InvoicesList.vue';
+import SettingsPage from '../views/SettingsPage.vue';
 
 const routes = [
   {
@@ -13,6 +14,7 @@ const routes = [
       { path: 'apartments', component: ApartmentsList },
       { path: 'meter-readings', component: MeterReadingsList },
       { path: 'invoices', component: InvoicesList },
+      { path: 'settings', component: SettingsPage },
     ],
   },
 ]

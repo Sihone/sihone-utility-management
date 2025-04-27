@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ApartmentController;
 use App\Http\Controllers\Api\MeterReadingController;
 use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\SettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,3 +30,7 @@ Route::apiResource('meter-readings', MeterReadingController::class);
 
 // invoices
 Route::apiResource('invoices', InvoiceController::class);
+
+// settings
+Route::get('/settings', [SettingsController::class, 'index']);
+Route::post('/settings', [SettingsController::class, 'update']);

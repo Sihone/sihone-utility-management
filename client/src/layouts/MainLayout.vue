@@ -29,6 +29,14 @@
       >
         Invoices
       </v-btn>
+      
+      <v-btn
+        variant="text"
+        :to="{ path: '/settings' }"
+        :class="{ 'v-btn--active': $route.path.startsWith('/settings') }"
+      >
+        Settings
+      </v-btn>
     </v-app-bar>
 
     <!-- Main Page Content -->
