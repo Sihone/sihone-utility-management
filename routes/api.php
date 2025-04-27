@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ApartmentController;
+use App\Http\Controllers\Api\MeterReadingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,3 +22,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 // apartments
 Route::apiResource('apartments', ApartmentController::class);
+
+// meter readings
+Route::apiResource('meter-readings', MeterReadingController::class);
