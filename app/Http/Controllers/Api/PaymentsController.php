@@ -1,0 +1,48 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Payment;
+use App\Models\Invoice;
+use Illuminate\Http\Request;
+
+class PaymentsController extends Controller
+{
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'invoice_id' => 'required|exists:invoices,id',
+            'amount' => 'required|integer|min:1',
+            'payment_date' => 'required|date',
+            'notes' => 'nullable|string',
+        ]);
+
+        $payment = Payment::create($validated);
+
+        return response()->json($payment);
+    }
+
+    public function list($invoiceId)
+    {
+        $payments = Payment::where('invoice_id', $invoiceId)->get();
+        return response()->json($payments);
+    }
+    
+    public function index()
+    {
+        $payments = Payment::with('invoice.apartment')
+            ->orderBy('payment_date', 'desc')
+            ->get();
+
+        return response()->json($payments);
+    }
+    
+    public function destroy(Payment $payment)
+    {
+        $payment->delete();
+
+        return response()->noContent();
+    }
+
+}
