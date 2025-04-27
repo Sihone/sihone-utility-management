@@ -5,7 +5,7 @@
   <v-container v-else>
     <v-card class="mt-5">
       <v-card-title class="text-h5">
-        Apartments Management
+        Apartments
         <v-spacer />
         <v-btn color="primary" icon @click="createDialog = true">
           <v-icon>mdi-plus</v-icon>

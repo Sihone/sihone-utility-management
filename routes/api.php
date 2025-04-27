@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ApartmentController;
 use App\Http\Controllers\Api\MeterReadingController;
+use App\Http\Controllers\Api\InvoiceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,3 +26,6 @@ Route::apiResource('apartments', ApartmentController::class);
 
 // meter readings
 Route::apiResource('meter-readings', MeterReadingController::class);
+
+// invoices
+Route::apiResource('invoices', InvoiceController::class);
