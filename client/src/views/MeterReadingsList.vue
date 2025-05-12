@@ -152,7 +152,7 @@ export default {
       },
       editedMeterReading: {
         apartment_id: null,
-        reading_date: '',
+        reading_date: new Date().toISOString().split('T')[0],
         meter_index: '',
       },
       selectedApartment: null,

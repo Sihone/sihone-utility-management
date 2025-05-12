@@ -12,7 +12,9 @@ class MeterReadingController extends Controller
 {
     public function index()
     {
-        return MeterReading::with('apartment')->get();
+        return MeterReading::with('apartment')
+          ->orderBy('id', 'desc')
+          ->get();
     }
 
     public function store(Request $request)
@@ -26,8 +28,9 @@ class MeterReadingController extends Controller
         $newReading = MeterReading::create($validated);
 
         $previousReading = MeterReading::where('apartment_id', $validated['apartment_id'])
-            ->where('reading_date', '<', $validated['reading_date'])
-            ->orderBy('reading_date', 'desc')
+            ->where('reading_date', '<=', $validated['reading_date'])
+            ->where('meter_index', '<', $validated['meter_index'])
+            ->orderBy('id', 'desc')
             ->first();
 
         // 🚨 NEW: Only create invoice if previous reading exists
@@ -61,7 +64,23 @@ class MeterReadingController extends Controller
                 'invoice_date' => $newReading->reading_date,
                 'fixed_fee_used' => $fixedFee,
                 'rate_per_m3_used' => $ratePerM3,
+                'registration_fee' => 0,
             ]);
+        }
+        else {
+          $registrationFeeAmount = Setting::where('key', 'registration_fee')->first();
+          Invoice::create([
+            'apartment_id' => $newReading->apartment_id,
+            'meter_reading_id' => $newReading->id,
+            'start_index' => $newReading->meter_index,
+            'end_index' => $newReading->meter_index,
+            'consumption' => 0,
+            'amount' => 0,
+            'invoice_date' => $newReading->reading_date,
+            'fixed_fee_used' => 0,
+            'rate_per_m3_used' => 0,
+            'registration_fee' => $registrationFeeAmount->value,
+          ]);
         }
 
         return $newReading;

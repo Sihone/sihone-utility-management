@@ -12,7 +12,7 @@ class PaymentsController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'invoice_id' => 'required|exists:invoices,id',
+            'apartment_id' => 'required|exists:apartments,id',
             'amount' => 'required|integer|min:1',
             'payment_date' => 'required|date',
             'notes' => 'nullable|string',
@@ -23,15 +23,15 @@ class PaymentsController extends Controller
         return response()->json($payment);
     }
 
-    public function list($invoiceId)
+    public function list($apartmentId)
     {
-        $payments = Payment::where('invoice_id', $invoiceId)->get();
+        $payments = Payment::where('apartment_id', $apartmentId)->get();
         return response()->json($payments);
     }
     
     public function index()
     {
-        $payments = Payment::with('invoice.apartment')
+        $payments = Payment::with('apartment')
             ->orderBy('payment_date', 'desc')
             ->get();
 
