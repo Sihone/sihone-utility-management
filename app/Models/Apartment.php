@@ -16,4 +16,9 @@ class Apartment extends Model
         'tenant_phone',
         'tenant_email',
     ];
+    
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
 }

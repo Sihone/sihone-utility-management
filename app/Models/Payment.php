@@ -7,14 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 class Payment extends Model
 {
     protected $fillable = [
-        'invoice_id',
+        'apartment_id',
         'amount',
         'payment_date',
         'notes',
     ];
 
-    public function invoice()
+    public function apartment()
     {
-        return $this->belongsTo(Invoice::class);
+        return $this->belongsTo(Apartment::class);
     }
 }

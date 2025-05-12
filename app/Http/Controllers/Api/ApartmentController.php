@@ -11,7 +11,8 @@ class ApartmentController extends Controller
     // List all apartments
     public function index()
     {
-        return Apartment::all();
+      return Apartment::with(['payments'])
+          ->get();
     }
 
     // Create a new apartment
@@ -33,6 +34,7 @@ class ApartmentController extends Controller
     // Show a single apartment (optional for now)
     public function show(Apartment $apartment)
     {
+        $apartment->load('payments');
         return $apartment;
     }
 

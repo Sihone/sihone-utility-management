@@ -83,8 +83,7 @@ export default {
       loadingPayments: false,
       headers: [
         { title: 'Payment Date', value: 'payment_date' },
-        { title: 'Apartment', value: 'invoice.apartment.name' },
-        { title: 'Invoice ID', value: 'invoice.id' },
+        { title: 'Apartment', value: 'apartment.name' },
         { title: 'Amount Paid (FCFA)', value: 'amount' },
         { title: 'Actions', value: 'actions', sortable: false },
       ],
@@ -101,7 +100,7 @@ export default {
   computed: {
     filteredPayments() {
       return this.payments.filter(payment => {
-        const byApartment = this.selectedApartment ? payment.invoice.apartment_id === this.selectedApartment : true;
+        const byApartment = this.selectedApartment ? payment.apartment_id === this.selectedApartment : true;
         const byStartDate = this.startDate ? payment.payment_date >= this.startDate : true;
         const byEndDate = this.endDate ? payment.payment_date <= this.endDate : true;
         return byApartment && byStartDate && byEndDate;

@@ -11,6 +11,7 @@
         <v-row>
           <v-text-field v-model="settings.fixed_fee" label="Fixed Service Fee (FCFA)" type="number" class="mr-2" />
           <v-text-field v-model="settings.rate_per_m3" label="Rate per m³ (FCFA)" type="number" class="mr-2" />
+          <v-text-field v-model="settings.registration_fee" label="Registration Fee (FCFA)" type="number" class="mr-2" />
         </v-row>
         
 
@@ -73,6 +74,7 @@ export default {
       settings: {
         fixed_fee: '',
         rate_per_m3: '',
+        registration_fee: '',
       },
       paymentOptions: {},
       loading: false,
@@ -91,6 +93,7 @@ export default {
         const response = await axios.get('http://127.0.0.1:8000/api/settings')
         this.settings.fixed_fee = response.data.fixed_fee
         this.settings.rate_per_m3 = response.data.rate_per_m3
+        this.settings.registration_fee = response.data.registration_fee || 0
         this.paymentOptions = JSON.parse(response.data.payment_options || '{}')
       } catch (error) {
         console.error('Error loading settings:', error)
@@ -118,6 +121,7 @@ export default {
         await axios.post('http://127.0.0.1:8000/api/settings', {
           fixed_fee: this.settings.fixed_fee,
           rate_per_m3: this.settings.rate_per_m3,
+          registration_fee: this.settings.registration_fee,
           payment_options: this.paymentOptions,
         })
         toast.success('Settings saved successfully')

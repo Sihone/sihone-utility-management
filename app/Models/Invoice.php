@@ -19,6 +19,7 @@ class Invoice extends Model
         'invoice_date',
         'fixed_fee_used',
         'rate_per_m3_used',
+        'registration_fee',
     ];
 
     public function apartment()
@@ -29,20 +30,5 @@ class Invoice extends Model
     public function meterReading()
     {
         return $this->belongsTo(MeterReading::class);
-    }
-    
-    public function payments()
-    {
-        return $this->hasMany(Payment::class);
-    }
-
-    public function getTotalPaidAttribute()
-    {
-        return $this->payments->sum('amount');
-    }
-
-    public function getIsFullyPaidAttribute()
-    {
-        return $this->total_paid >= $this->amount;
     }
 }

@@ -10,13 +10,13 @@ class InvoiceController extends Controller
 {
     public function index()
     {
-      return Invoice::with(['apartment', 'meterReading', 'payments'])
+      return Invoice::with(['apartment.payments', 'meterReading'])
           ->orderBy('invoice_date', 'desc')
           ->get();
     }
 
     public function show(Invoice $invoice)
     {
-        return $invoice->load('apartment', 'meterReading');
+        return $invoice->load('apartment.payments', 'meterReading');
     }
 }

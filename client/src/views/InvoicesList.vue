@@ -5,6 +5,9 @@
       <v-col>
         <h2>Invoices</h2>
       </v-col>
+      <v-col class="text-right">
+        <v-btn color="primary" @click="openPaymentDialog()">Add Payment</v-btn>
+      </v-col>
     </v-row>
     
     <!-- full screen horizontal line -->
@@ -16,7 +19,7 @@
         <v-select
           v-model="selectedApartment"
           :items="apartments"
-          item-title="name"
+          item-title="fullName"
           item-value="id"
           label="Filter by Apartment"
           clearable
@@ -56,9 +59,6 @@
           <v-btn size="small" @click="printInvoice(item)" class="mr-2">
             <v-icon>mdi-printer</v-icon>
           </v-btn>
-          <v-btn size="small" color="primary" @click="openPaymentDialog(item)" class="ml-2">
-            <v-icon>mdi-currency-usd</v-icon>
-          </v-btn>
         </template>
         <template #item.status="{ item }">
           <v-chip
@@ -75,6 +75,15 @@
         <v-card>
           <v-card-title>Record Payment</v-card-title>
           <v-card-text>
+            <v-select
+              v-model="paymentForm.apartment_id"
+              :items="apartments"
+              item-title="fullName"
+              item-value="id"
+              label="Select Apartment"
+              return-object
+              :loading="loadingApartments"
+            />
             <v-text-field v-model="paymentForm.amount" label="Amount Paid (FCFA)" type="number" />
             <v-text-field v-model="paymentForm.payment_date" label="Payment Date" type="date" />
             <v-textarea v-model="paymentForm.notes" label="Notes (optional)" />
@@ -101,7 +110,7 @@ export default {
     return {
       invoices: [],
       headers: [
-        { title: 'Apartment', value: 'apartment.name' },
+        { title: 'Apartment', value: 'fullName' },
         { title: 'Invoice Date', value: 'invoice_date' },
         { title: 'Consumption (m³)', value: 'consumption' },
         { title: 'Amount (FCFA)', value: 'amount' },
@@ -121,7 +130,7 @@ export default {
       saving: false,
       paymentDialog: false,
       paymentForm: {
-        invoice_id: null,
+        apartment_id: null,
         amount: '',
         payment_date: '',
         notes: '',
@@ -150,12 +159,20 @@ export default {
       try {
         const response = await axios.get('http://127.0.0.1:8000/api/invoices')
         this.invoices = response.data.map((dt) => {
-          const balance = dt.amount - dt.payments.reduce((acc, payment) => acc + payment.amount, 0)
+          const total = response.data.reduce((acc, invoice) => {
+            if (invoice.apartment.id === dt.apartment.id && invoice.id <= dt.id) {
+              return acc + invoice.amount + invoice.registration_fee
+            }
+            return acc;
+          }, 0);
+          const balance =  total - dt.apartment.payments.reduce((acc, payment) => acc + payment.amount, 0)
+          dt.amount += dt.registration_fee
           return {
             ...dt,
-            balance,
-            status: balance === 0 ? 'Paid' : balance > 0  && balance < dt.amount ? 'Partial' : 'Unpaid',
-            color: balance === 0 ? 'green' : balance > 0  && balance < dt.amount ? 'orange' : 'red'
+            balance: balance >= 0 ? balance : 0,
+            status: balance <= 0 ? 'Paid' : balance > 0  && balance < dt.amount ? 'Partial' : 'Unpaid',
+            color: balance <= 0 ? 'green' : balance > 0  && balance < dt.amount ? 'orange' : 'red',
+            fullName: dt.apartment.name + ' - ' + dt.apartment.tenant_name,
           }
         })
       } catch (error) {
@@ -181,7 +198,12 @@ export default {
       this.loadingApartments = true
       try {
         const response = await axios.get('http://127.0.0.1:8000/api/apartments')
-        this.apartments = response.data
+        this.apartments = response.data.map((dt) => {
+          return {
+            ...dt,
+            fullName: dt.name + ' - ' + dt.tenant_name,
+          }
+        })
       } catch (error) {
         console.error('Error fetching apartments:', error)
       } finally {
@@ -193,12 +215,64 @@ export default {
 
       const today = new Date().toLocaleDateString();
       const waterCharge = invoice.consumption * invoice.rate_per_m3_used;
-      const totalDue = waterCharge + invoice.fixed_fee_used;
 
       let paymentDetailsHtml = '';
       for (const [key, value] of Object.entries(this.settings.payment_options)) {
         paymentDetailsHtml += `<strong>${key}:</strong> ${value}<br/>`;
       }
+      
+      const consumption = invoice.consumption ? (
+        `<tr>
+          <td>Water Consumption</td>
+          <td>${invoice.consumption} m³</td>
+          <td style="text-align:right;">${invoice.rate_per_m3_used}</td>
+          <td style="text-align:right;">${waterCharge}</td>
+        </tr>`
+      ) : '';
+      
+      const fixed_fee = invoice.fixed_fee_used ? (
+        `<tr>
+          <td>Fixed Fee</td>
+          <td>1</td>
+          <td style="text-align:right;">${invoice.fixed_fee_used.toLocaleString()} FCFA</td>
+          <td style="text-align:right;">${invoice.fixed_fee_used.toLocaleString()} FCFA</td>
+        </tr>`
+      ) : '';
+      
+      const registration_fee = invoice.registration_fee? (
+        `<tr>
+          <td>Registration Fee</td>
+          <td>1</td>
+          <td style="text-align:right;">${invoice.registration_fee.toLocaleString()} FCFA</td>
+          <td style="text-align:right;">${invoice.registration_fee.toLocaleString()} FCFA</td>
+        </tr>`
+      ) : '';
+      
+      let totalPaid = 0;
+      let payments = '';
+      invoice.apartment.payments.forEach((payment) => {
+        totalPaid += payment.amount;
+        payments += `
+          <tr>
+            <td>${payment.payment_date}</td>
+            <td style="text-align:right;">${payment.amount.toLocaleString()} FCFA</td>
+          </tr>
+        `
+      });
+      
+      let previousBillBalance = this.invoices.reduce((acc, inv) => {
+        if (inv.apartment.id === invoice.apartment.id && inv.id < invoice.id) {
+          if (inv.registration_fee) {
+            return acc + Number(inv.registration_fee)
+          }
+          return acc + Number(inv.amount)
+        }
+        return acc;
+      }, 0);
+      
+      const totalAmount = waterCharge + invoice.fixed_fee_used + invoice.registration_fee;
+      
+      const totalDue = totalAmount + previousBillBalance - totalPaid;
 
       const invoiceHtml = `
         <html>
@@ -247,24 +321,40 @@ export default {
               <tr>
                 <th>Description</th>
                 <th>Unit</th>
-                <th>Rate (FCFA)</th>
-                <th>Amount (FCFA)</th>
+                <th>Rate</th>
+                <th>Amount</th>
+              </tr>
+              ${consumption}
+              ${fixed_fee}
+              ${registration_fee}
+              <tr>
+                <td colspan="3">Total Charges:</td>
+                <td style="text-align:right;">${totalAmount.toLocaleString()} FCFA</td>
               </tr>
               <tr>
-                <td>Water Consumption</td>
-                <td>${invoice.consumption} m³</td>
-                <td>${invoice.rate_per_m3_used}</td>
-                <td>${waterCharge}</td>
+                <td colspan="3">Previous bill balance:</td>
+                <td style="text-align:right;">${(previousBillBalance > 0 ? previousBillBalance : 0).toLocaleString()} FCFA</td>
               </tr>
+            </table>
+          </div>
+          
+          <div class="payment-info">
+            <h3>Payments</h3>
+            <table>
+              ${payments}
               <tr>
-                <td>Fixed Service Fee</td>
-                <td>1</td>
-                <td>${invoice.fixed_fee_used}</td>
-                <td>${invoice.fixed_fee_used}</td>
+                <th>Total Paid:</th>
+                <th style="text-align:right;">${totalPaid.toLocaleString()} FCFA</th>
               </tr>
+            </table>
+          </div>
+          
+          <div class="payment-info">
+            <h3>Balance</h3>
+            <table>
               <tr>
-                <th colspan="3" style="text-align:right;">Total Due:</th>
-                <th>${totalDue} FCFA</th>
+                <th>Total Due:</th>
+                <th style="text-align:right;">${totalDue.toLocaleString()} FCFA</th>
               </tr>
             </table>
           </div>
@@ -294,10 +384,9 @@ export default {
       this.startDate = ''
       this.endDate = ''
     },
-    openPaymentDialog(invoice) {
+    openPaymentDialog() {
       this.paymentForm = {
-        invoice_id: invoice.id,
-        amount: invoice.balance,
+        amount: 0,
         payment_date: new Date().toISOString().split('T')[0],
         notes: '',
       };
@@ -312,7 +401,14 @@ export default {
 
       this.savingPayment = true;
       try {
-        await axios.post('http://127.0.0.1:8000/api/payments', this.paymentForm);
+        const apartmentId = this.paymentForm.apartment_id.id;
+        await axios.post(
+          'http://127.0.0.1:8000/api/payments',
+          {
+            ...this.paymentForm,
+            apartment_id: apartmentId,
+          }
+        );
         this.paymentDialog = false;
         this.fetchInvoices(); // Refresh invoices (optional, in case status changes)
       } catch (error) {
